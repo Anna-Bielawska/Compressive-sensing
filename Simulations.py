@@ -34,3 +34,59 @@ def reconstructBP(vec, Mat, tolerance = 1e-16):
     res = scipy.optimize.minimize(fun, x0 = np.ones(Z), method='SLSQP', constraints=cons, tol = tolerance)['x']
     
     return res
+
+
+    
+############################################### BT - Basic Thresholding ############################################
+
+def Ls(Arr, s, N):
+    
+    '''A function returning a list of s non-zero largest (in terms of module) indices;
+       Arr - an array to be filtered,
+       s - a number of non-zero coefficients,
+       N - lenght of signal to be reconstructed
+    '''
+    
+    if s > N:
+        s = N
+    Arr_1 = np.abs(Arr)
+    Arr_sorted = sorted(Arr_1, reverse = True)
+    
+    # Find the boundary coefficient
+    threshold = Arr_sorted[s-1]
+    
+    # Find indices of coefficients to be rid of (zeroed)
+    Ls_index_0 = np.where(Arr_1 < threshold)
+    
+    # Change into a list of indices
+    Ls_index_0 = np.concatenate(Ls_index_0).tolist()
+    
+    return Ls_index_0
+
+
+def reconstructBT(A, y, s, tolerance = 1e-5):
+    
+    '''Basic thresholding algorithm as in the thesis,
+       recovers a sparse vector res.x from y and A;
+       A - sampling matrix,
+       y - vector of measurements,
+       s - number of non-zero coefficients in the signal to be reconstructed,
+       tol = tolerance (error)'''
+    
+    # A function to be minimized (||Ax - y||_2)^2
+    fun = lambda x: sum((A.dot(x) - y)**2)
+    
+    # Length of original signal
+    N = np.shape(A)[1]
+    
+    # Dictionary for the estimator
+    D = Ls(np.transpose(A).dot(y), s, N)
+
+    # Constraints of the problem, x[D] = 0, indices of x that are in D must be equal to 0
+    cons = {'type': 'eq', 'fun': lambda x: x[D]}
+    
+    # Find solution to the minimization problem
+    res = scipy.optimize.minimize(fun, x0 = np.zeros(N), method='SLSQP', constraints=cons, tol = tolerance)    
+    
+    # Return a sparse vector x of the solution
+    return res.x
