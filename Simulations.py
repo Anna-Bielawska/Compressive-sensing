@@ -90,3 +90,54 @@ def reconstructBT(A, y, s, tolerance = 1e-5):
     
     # Return a sparse vector x of the solution
     return res.x
+
+
+############################################# IHT - Iterative Hard Thresholding ###################################
+
+def hardThreshold(vec, size):
+    
+    '''A function returning a vector with small coefficients equal to zero;
+    vec - vector to be filtered,
+    size = number of non-zero coefficients to be left unchanged'''
+    
+    new_vec = sorted(abs(vec), reverse = True)
+    thr = new_vec[size-1]
+    
+    #np.array of True/False
+    j = abs(vec) < thr
+    
+    #where True, substitute with 0
+    vec[j] = 0
+    
+    return vec
+
+
+def IHT(A, y, s, Its=200, tol=0.0001):
+    
+    '''Iterative hard thresholding algorithm as in the thesis,
+       recovers a sparse vector xhat from y and A;
+       A - sampling matrix,
+       y - vector of measurements,
+       s - number of non-zero coefficients in the signal to be reconstructed,
+       Its - number of maximum algorithm iterations,
+       tol = tolerance (error)'''
+
+    # Length of original signal
+    Length = np.shape(A)[1]
+
+    # Initial estimate
+    xhat = np.zeros(Length)
+
+    for t in range(Its):
+
+        # Pre-threshold value
+        gamma = xhat + np.dot(np.transpose(A), y-A.dot(xhat))
+
+        # Estimate the signal (by hard thresholding)
+        xhat = hardThreshold(gamma, size=s)
+
+        # Stopping criteria
+        if sum(abs(y-A.dot(xhat))) < tol:
+            break
+
+    return xhat
